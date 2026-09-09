@@ -705,6 +705,13 @@ export interface OcxProviderConfig {
    * Codex effort to a budget fraction.
    */
   thinkingBudgetModels?: string[];
+  /**
+   * Model ids whose OpenAI-compatible chat endpoint serializes reasoning control through a
+   * nested `chat_template_kwargs: { thinking: true, reasoning_effort }` object (vLLM chat
+   * templates) instead of a top-level `reasoning_effort` field. The openai-chat adapter sends
+   * the final mapped effort nested for these models and emits no top-level reasoning field.
+   */
+  chatTemplateReasoningModels?: string[];
   /** Anthropic-compatible gateways that need custom tool names escaped on the wire. */
   escapeBuiltinToolNames?: boolean;
   /**

@@ -1036,3 +1036,121 @@ describe("stale reasoning-ladder self-heal", () => {
     expect(bodyLow.reasoning_effort).toBe("low");
   });
 });
+
+describe("chat-template reasoning models (vLLM chat_template_kwargs wire)", () => {
+  const templateProvider: OcxProviderConfig = {
+    adapter: "openai-chat",
+    baseUrl: "https://chat-template.test/v1",
+    chatTemplateReasoningModels: ["template-reasoner"],
+    modelReasoningEfforts: { "template-reasoner": ["low", "medium", "high", "xhigh", "max"] },
+  };
+
+  test("matched model + high nests reasoning_effort and drops the top-level field", () => {
+    const req = buildChatRequest(templateProvider, "template-reasoner", { reasoning: "high" });
+    const body = JSON.parse(req.body) as Record<string, unknown>;
+    expect(body.chat_template_kwargs).toEqual({ thinking: true, reasoning_effort: "high" });
+    expect(body).not.toHaveProperty("reasoning_effort");
+    expect(req.reasoningLog).toEqual({
+      effectiveEffort: "high",
+      wireField: "chat_template_kwargs.reasoning_effort",
+      wireValue: "high",
+    });
+  });
+
+  test("matched model + max nests reasoning_effort max", () => {
+    const req = buildChatRequest(templateProvider, "template-reasoner", { reasoning: "max" });
+    const body = JSON.parse(req.body) as Record<string, unknown>;
+    expect(body.chat_template_kwargs).toEqual({ thinking: true, reasoning_effort: "max" });
+    expect(body).not.toHaveProperty("reasoning_effort");
+    expect(req.reasoningLog).toEqual({
+      effectiveEffort: "max",
+      wireField: "chat_template_kwargs.reasoning_effort",
+      wireValue: "max",
+    });
+  });
+
+  test("requested xhigh is mapped through modelReasoningEffortMap before nesting", () => {
+    const mappedProvider: OcxProviderConfig = {
+      ...templateProvider,
+      modelReasoningEffortMap: { "template-reasoner": { xhigh: "max" } },
+    };
+    const req = buildChatRequest(mappedProvider, "template-reasoner", { reasoning: "xhigh" });
+    const body = JSON.parse(req.body) as Record<string, unknown>;
+    expect(body.chat_template_kwargs).toEqual({ thinking: true, reasoning_effort: "max" });
+    expect(body).not.toHaveProperty("reasoning_effort");
+    expect(req.reasoningLog).toEqual({
+      effectiveEffort: "max",
+      wireField: "chat_template_kwargs.reasoning_effort",
+      wireValue: "max",
+    });
+  });
+
+  test("unlisted sibling model keeps the ordinary top-level reasoning_effort wire", () => {
+    const req = buildChatRequest(templateProvider, "sibling-chat-model", { reasoning: "high" });
+    const body = JSON.parse(req.body) as Record<string, unknown>;
+    expect(body.reasoning_effort).toBe("high");
+    expect(body).not.toHaveProperty("chat_template_kwargs");
+    expect(req.reasoningLog).toEqual({
+      effectiveEffort: "high",
+      wireField: "reasoning_effort",
+      wireValue: "high",
+    });
+  });
+
+  test("thinkingToggleModels on the same provider keep the exact pre-P1 thinking wire", () => {
+    const mixedProvider: OcxProviderConfig = {
+      ...templateProvider,
+      thinkingToggleModels: ["glm-5"],
+      modelReasoningEffortMap: {
+        "glm-5": { none: "disabled", minimal: "disabled", low: "disabled", medium: "enabled", high: "enabled", xhigh: "enabled", max: "enabled" },
+      },
+    };
+    const toggleReq = buildChatRequest(mixedProvider, "glm-5", { reasoning: "high" });
+    const toggleBody = JSON.parse(toggleReq.body) as Record<string, unknown>;
+    expect(toggleBody.thinking).toEqual({ type: "enabled" });
+    expect(toggleBody).not.toHaveProperty("chat_template_kwargs");
+    expect(toggleBody).not.toHaveProperty("reasoning_effort");
+    expect(toggleReq.reasoningLog).toEqual({
+      effectiveEffort: "enabled",
+      wireField: "thinking.type",
+      wireValue: "enabled",
+    });
+
+    const templateReq = buildChatRequest(mixedProvider, "template-reasoner", { reasoning: "high" });
+    const templateBody = JSON.parse(templateReq.body) as Record<string, unknown>;
+    expect(templateBody.chat_template_kwargs).toEqual({ thinking: true, reasoning_effort: "high" });
+  });
+
+  test("thinkingBudgetModels on the same provider keep the exact pre-P1 thinking_budget wire", () => {
+    const mixedProvider: OcxProviderConfig = {
+      ...templateProvider,
+      thinkingBudgetModels: ["qwen3.5-397b"],
+      modelReasoningEfforts: {
+        "template-reasoner": ["low", "medium", "high", "xhigh", "max"],
+        "qwen3.5-397b": ["low", "medium", "high", "xhigh", "max"],
+      },
+    };
+    const budgetReq = buildChatRequest(mixedProvider, "qwen3.5-397b", { reasoning: "high", maxOutputTokens: 10000 });
+    const budgetBody = JSON.parse(budgetReq.body) as Record<string, unknown>;
+    expect(budgetBody.thinking_budget).toBe(7500);
+    expect(budgetBody).not.toHaveProperty("chat_template_kwargs");
+    expect(budgetBody).not.toHaveProperty("reasoning_effort");
+    expect(budgetReq.reasoningLog).toEqual({
+      effectiveEffort: "high",
+      wireField: "thinking_budget",
+      wireValue: 7500,
+    });
+
+    const templateReq = buildChatRequest(mixedProvider, "template-reasoner", { reasoning: "high" });
+    const templateBody = JSON.parse(templateReq.body) as Record<string, unknown>;
+    expect(templateBody.chat_template_kwargs).toEqual({ thinking: true, reasoning_effort: "high" });
+  });
+
+  test("no requested effort fabricates neither knob for a chat-template model", () => {
+    const req = buildChatRequest(templateProvider, "template-reasoner", {});
+    const body = JSON.parse(req.body) as Record<string, unknown>;
+    expect(body).not.toHaveProperty("chat_template_kwargs");
+    expect(body).not.toHaveProperty("reasoning_effort");
+    expect(req.reasoningLog).toBeUndefined();
+  });
+});

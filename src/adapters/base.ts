@@ -107,7 +107,7 @@ export interface AdapterRequest {
         }
       | {
           effectiveEffort: string;
-          wireField: "reasoning_effort" | "reasoning.effort" | "thinking.type";
+          wireField: "reasoning_effort" | "reasoning.effort" | "thinking.type" | "chat_template_kwargs.reasoning_effort";
           wireValue: string;
         };
     /**

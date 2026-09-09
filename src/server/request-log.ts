@@ -516,7 +516,8 @@ export function recordAdapterReasoning(
         && reasoning.wireField !== "reasoning.enabled"
         && reasoning.wireField !== "reasoning.effort"
         && reasoning.wireField !== "thinking_budget"
-        && reasoning.wireField !== "thinking.type")
+        && reasoning.wireField !== "thinking.type"
+        && reasoning.wireField !== "chat_template_kwargs.reasoning_effort")
       || !isValidReasoningWireValue(reasoning.wireField, reasoning.wireValue)) {
       return;
     }

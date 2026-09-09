@@ -192,6 +192,7 @@ Providers can expose a built-in shorthand, such as `agy` for `google-antigravity
 | `requiresReasoningPlaceholderModels?` | `string[]` | Models whose upstream rejects a tool_call continuation missing `reasoning_content` (DeepSeek thinking mode); a minimal placeholder is injected when the replay cache misses. Defaults to `preserveReasoningContentModels`; set `[]` to opt out. |
 | `thinkingToggleModels?` | `string[]` | Chat models using `thinking.enabled` rather than an effort ladder. |
 | `thinkingBudgetModels?` | `string[]` | Chat models using integer `thinking_budget`; effort maps to a budget fraction. |
+| `chatTemplateReasoningModels?` | `string[]` | vLLM/OpenAI-Chat compatibility: exact model IDs whose reasoning must be serialized nested as `chat_template_kwargs: { thinking: true, reasoning_effort: <mapped effort> }` instead of a top-level `reasoning_effort`. A matched model never emits a top-level `reasoning_effort`. |
 | `noVisionModels?` | `string[]` | Text-only models sent through the vision sidecar; matching tolerates an Ollama `:size` tag. |
 | `escapeBuiltinToolNames?` | `boolean` | Escape built-in tool names for Anthropic-compatible gateways and restore them in returned calls. |
 | `anthropicEofTolerance?` | `boolean` | Let an Anthropic-compatible gateway complete a stream that ends before `message_stop`, only when visible text or a complete JSON-object tool input was received. Off by default. |

@@ -878,6 +878,7 @@ const PROVIDER_CONFIG_FIELD_POLICY = {
   reasoningDetailsModels: "editor",
   thinkingToggleModels: "editor",
   thinkingBudgetModels: "editor",
+  chatTemplateReasoningModels: "editor",
   escapeBuiltinToolNames: "editor",
   anthropicEofTolerance: "editor",
   noVisionModels: "editor",

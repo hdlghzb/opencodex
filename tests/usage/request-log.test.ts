@@ -392,6 +392,41 @@ describe("request log metadata", () => {
     expect(logCtx.reasoningWireValue).toBe(false);
   });
 
+  test("records a chat-template reasoning wire as bounded metadata", () => {
+    const attempt = beginRequestAttempt(3, "vllm-compat", "template-reasoner", "openai-chat");
+    const logCtx: RequestLogContext = {
+      model: "template-reasoner",
+      provider: "vllm-compat",
+      requestedEffort: "max",
+      activeAttempt: attempt,
+    };
+
+    recordAdapterReasoning(logCtx, {
+      url: "https://chat-template.test/v1/chat/completions",
+      method: "POST",
+      headers: {},
+      body: "{}",
+      reasoningLog: {
+        effectiveEffort: "max",
+        wireField: "chat_template_kwargs.reasoning_effort",
+        wireValue: "max",
+      },
+    });
+
+    expect(logCtx).toMatchObject({
+      requestedEffort: "max",
+      effectiveEffort: "max",
+      reasoningWireField: "chat_template_kwargs.reasoning_effort",
+      reasoningWireValue: "max",
+    });
+    expect(attempt).toMatchObject({
+      requestedEffort: "max",
+      effectiveEffort: "max",
+      reasoningWireField: "chat_template_kwargs.reasoning_effort",
+      reasoningWireValue: "max",
+    });
+  });
+
   test("recordFirstOutput is one-shot for request and active attempt (WP4 TTFT)", () => {
     const attempt = beginRequestAttempt(1, "a", "m1", "openai-chat");
     const logCtx: RequestLogContext = {

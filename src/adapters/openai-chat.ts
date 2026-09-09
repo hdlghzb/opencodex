@@ -1555,6 +1555,17 @@ export function createOpenAIChatAdapter(provider: OcxProviderConfig): ProviderAd
               wireValue: reasoningEffort,
             };
           }
+        } else if (modelInList(provider.chatTemplateReasoningModels, parsed.modelId)) {
+          // vLLM-style deployments read reasoning control from the chat template: the server
+          // consumes `chat_template_kwargs` (e.g. `{ thinking: true, reasoning_effort }`)
+          // instead of a top-level OpenAI `reasoning_effort`. Serialize the final mapped
+          // effort nested here and never duplicate it at the top level.
+          body.chat_template_kwargs = { thinking: true, reasoning_effort: reasoningEffort };
+          reasoningLog = {
+            effectiveEffort: reasoningEffort,
+            wireField: "chat_template_kwargs.reasoning_effort",
+            wireValue: reasoningEffort,
+          };
         } else {
           body.reasoning_effort = reasoningEffort;
           reasoningLog = {
